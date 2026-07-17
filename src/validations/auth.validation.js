@@ -46,3 +46,20 @@ export const verifyEmailValidation = [
     .isLength({ min: 64, max: 64 })
     .withMessage("El token de verificación debe tener exactamente 64 caracteres."),
 ];
+
+export const loginValidation = [
+  body("email")
+    .trim()
+    .notEmpty()
+    .withMessage("El correo electrónico es obligatorio.")
+    .bail()
+    .isEmail()
+    .withMessage("El correo electrónico debe tener un formato válido.")
+    .normalizeEmail(),
+  body("password")
+    .notEmpty()
+    .withMessage("La contraseña es obligatoria.")
+    .bail()
+    .isString()
+    .withMessage("La contraseña debe ser una cadena de texto."),
+];

@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 
 import * as userRepository from "../repositories/user.repository.js";
+import { generateToken } from "../utils/jwt.js";
 import { sendVerificationEmail } from "./email.service.js";
 
 const REGISTRATION_MESSAGE =
@@ -91,5 +92,59 @@ export const verifyEmail = async (token) => {
 
   return {
     message: "Correo verificado correctamente.",
+  };
+};
+
+export const loginUser = async ({ email, password }) => {
+  if (
+    typeof email !== "string" ||
+    !email.trim() ||
+    typeof password !== "string" ||
+    !password
+  ) {
+    const error = new Error("El correo y la contraseña son obligatorios.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const foundUser = await userRepository.findByEmail(normalizedEmail, true);
+
+  if (!foundUser) {
+    const error = new Error("Correo o contraseña incorrectos.");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  const passwordMatches = await bcrypt.compare(password, foundUser.password);
+
+  if (!passwordMatches) {
+    const error = new Error("Correo o contraseña incorrectos.");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  if (!foundUser.isVerified) {
+    const error = new Error(
+      "Debés verificar tu correo antes de iniciar sesión.",
+    );
+    error.statusCode = 403;
+    throw error;
+  }
+
+  const user = {
+    _id: foundUser._id,
+    name: foundUser.name,
+    email: foundUser.email,
+    isVerified: foundUser.isVerified,
+    createdAt: foundUser.createdAt,
+    updatedAt: foundUser.updatedAt,
+  };
+  const token = generateToken({ userId: foundUser._id });
+
+  return {
+    user,
+    token,
+    message: "Inicio de sesión exitoso.",
   };
 };
