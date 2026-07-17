@@ -63,3 +63,10 @@ export const updateById = (id, updateData) =>
   }).populate("astro", ASTRO_PUBLIC_FIELDS);
 
 export const deleteById = (id) => Conversation.findByIdAndDelete(id);
+
+export const updateLastMessageAt = (id, date) =>
+  Conversation.findByIdAndUpdate(
+    id,
+    { lastMessageAt: date },
+    { new: true, runValidators: true },
+  );
