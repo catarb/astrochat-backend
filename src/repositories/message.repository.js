@@ -29,3 +29,11 @@ export const deleteById = (id) => Message.findByIdAndDelete(id);
 
 export const deleteManyByConversation = (conversationId) =>
   Message.deleteMany({ conversation: conversationId });
+
+export const findRecentByConversation = async (conversationId, limit) => {
+  const messages = await Message.find({ conversation: conversationId })
+    .sort({ createdAt: -1 })
+    .limit(limit);
+
+  return messages.reverse();
+};
