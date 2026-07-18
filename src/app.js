@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
 
+import { corsOptions } from "./config/cors.js";
 import { notFound } from "./middleware/notFound.middleware.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 import astroRoutes from "./routes/astro.routes.js";
@@ -12,7 +13,7 @@ import messageRoutes from "./routes/message.routes.js";
 
 const app = express();
 
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 
 app.get("/api/health", (req, res) => {

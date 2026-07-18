@@ -1,0 +1,739 @@
+{
+  "info": {
+    "_postman_id": "0ca67578-9a37-4c61-b639-4df9052ebaf5",
+    "name": "AstroChat Backend",
+    "description": "Colección final de la API REST de AstroChat. Contiene los 21 endpoints reales del backend. Configure baseUrl, complete verificationToken desde el correo de prueba y ejecute Login para guardar token automáticamente. Los requests DELETE son destructivos y deben ejecutarse al final sobre datos temporales sin relaciones importantes.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (pm.response.code >= 200 && pm.response.code < 300) {",
+          "  pm.test(\"La respuesta exitosa declara success=true\", function () {",
+          "    const json = pm.response.json();",
+          "    pm.expect(json.success).to.eql(true);",
+          "  });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "verificationToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "astroId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "astroSlug",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "conversationId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "messageId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - Health Check",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Código 200\", function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "url": "{{baseUrl}}/health",
+        "description": "Comprueba que la API responda y muestra el estado de la conexión de Mongoose. No requiere autenticación. Variable: baseUrl. Código esperado: 200."
+      },
+      "response": []
+    },
+    {
+      "name": "01 - Auth",
+      "description": "Registro, verificación de correo, login y consulta del usuario autenticado.",
+      "item": [
+        {
+          "name": "01 - Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Código esperado\", function () { pm.expect([201, 400, 409, 500]).to.include(pm.response.code); });",
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  const user = json.data && json.data.user;",
+                  "  const id = user && (user._id || user.id);",
+                  "  if (id) {",
+                  "    pm.collectionVariables.set(\"userId\", id);",
+                  "    if (pm.environment && pm.environment.name) pm.environment.set(\"userId\", id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Usuario Demo\",\n  \"email\": \"demo@astrochat.test\",\n  \"password\": \"AstroChat123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/auth/register",
+            "description": "Registra un usuario ficticio y envía el correo de verificación. No requiere autenticación. Variable: baseUrl. Códigos principales: 201, 400, 409 y 500. Si se crea, guarda userId."
+          },
+          "response": []
+        },
+        {
+          "name": "02 - Verify Email",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Código esperado\", function () { pm.expect([200, 400]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": "{{baseUrl}}/auth/verify-email/{{verificationToken}}",
+            "description": "Verifica el correo usando el token hexadecimal recibido por email. No requiere autenticación. Variables: baseUrl y verificationToken. Códigos principales: 200 y 400."
+          },
+          "response": []
+        },
+        {
+          "name": "03 - Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Código esperado\", function () { pm.expect([200, 400, 401, 403]).to.include(pm.response.code); });",
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  const data = json.data || {};",
+                  "  if (data.token) {",
+                  "    pm.collectionVariables.set(\"token\", data.token);",
+                  "    if (pm.environment && pm.environment.name) pm.environment.set(\"token\", data.token);",
+                  "  }",
+                  "  const id = data.user && (data.user._id || data.user.id);",
+                  "  if (id) {",
+                  "    pm.collectionVariables.set(\"userId\", id);",
+                  "    if (pm.environment && pm.environment.name) pm.environment.set(\"userId\", id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"demo@astrochat.test\",\n  \"password\": \"AstroChat123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/auth/login",
+            "description": "Inicia sesión con el usuario ficticio ya verificado. No requiere autenticación. Variable: baseUrl. Códigos principales: 200, 400, 401 y 403. Si responde correctamente, guarda token y userId."
+          },
+          "response": []
+        },
+        {
+          "name": "04 - Me",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Código esperado\", function () { pm.expect([200, 401]).to.include(pm.response.code); });",
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  const user = json.data && json.data.user;",
+                  "  const id = user && (user._id || user.id);",
+                  "  if (id) {",
+                  "    pm.collectionVariables.set(\"userId\", id);",
+                  "    if (pm.environment && pm.environment.name) pm.environment.set(\"userId\", id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/auth/me",
+            "description": "Devuelve el usuario asociado al Bearer token heredado de la colección. Variables: baseUrl y token. Códigos principales: 200 y 401. Si responde correctamente, actualiza userId."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02 - Astros",
+      "description": "Consulta pública y CRUD protegido de Astros. Utilice un Astro temporal y ejecute Delete sólo al finalizar las pruebas relacionadas.",
+      "item": [
+        {
+          "name": "01 - List Astros",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Código 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": "{{baseUrl}}/astros?page=1&limit=10&isActive=true",
+            "description": "Lista Astros activos con paginación. No requiere autenticación. Variable: baseUrl. Código esperado: 200."
+          },
+          "response": []
+        },
+        {
+          "name": "02 - Create Astro",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Código esperado\", function () { pm.expect([201, 400, 401, 409]).to.include(pm.response.code); });",
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  const astro = json.data && json.data.astro;",
+                  "  const id = astro && (astro._id || astro.id);",
+                  "  if (id) {",
+                  "    pm.collectionVariables.set(\"astroId\", id);",
+                  "    if (pm.environment && pm.environment.name) pm.environment.set(\"astroId\", id);",
+                  "  }",
+                  "  if (astro && astro.slug) {",
+                  "    pm.collectionVariables.set(\"astroSlug\", astro.slug);",
+                  "    if (pm.environment && pm.environment.name) pm.environment.set(\"astroSlug\", astro.slug);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Marte Demo\",\n  \"type\": \"planet\",\n  \"description\": \"Marte Demo es un Astro temporal utilizado para probar el CRUD desde Postman.\",\n  \"shortDescription\": \"Astro temporal para pruebas.\",\n  \"imageUrl\": \"https://example.com/marte-demo.jpg\",\n  \"scientificName\": \"Mars\",\n  \"distance\": \"225 millones de km\",\n  \"constellation\": null,\n  \"isActive\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/astros",
+            "description": "Crea un Astro temporal. Requiere Bearer token. Variables: baseUrl y token. Códigos principales: 201, 400, 401 y 409. Si se crea, guarda astroId y astroSlug."
+          },
+          "response": []
+        },
+        {
+          "name": "03 - Get Astro by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Código esperado\", function () { pm.expect([200, 400, 404]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": "{{baseUrl}}/astros/{{astroId}}",
+            "description": "Consulta un Astro por ID. No requiere autenticación. Variables: baseUrl y astroId. Códigos principales: 200, 400 y 404."
+          },
+          "response": []
+        },
+        {
+          "name": "04 - Get Astro by Slug",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Código esperado\", function () { pm.expect([200, 400, 404]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": "{{baseUrl}}/astros/slug/{{astroSlug}}",
+            "description": "Consulta un Astro por slug. No requiere autenticación. Variables: baseUrl y astroSlug. Códigos principales: 200, 400 y 404."
+          },
+          "response": []
+        },
+        {
+          "name": "05 - Update Astro",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Código esperado\", function () { pm.expect([200, 400, 401, 404, 409]).to.include(pm.response.code); });",
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  const astro = json.data && json.data.astro;",
+                  "  if (astro && astro.slug) {",
+                  "    pm.collectionVariables.set(\"astroSlug\", astro.slug);",
+                  "    if (pm.environment && pm.environment.name) pm.environment.set(\"astroSlug\", astro.slug);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shortDescription\": \"Astro temporal actualizado para pruebas.\",\n  \"isActive\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/astros/{{astroId}}",
+            "description": "Actualiza campos permitidos de un Astro mediante PUT. Requiere Bearer token. Variables: baseUrl, token y astroId. Códigos principales: 200, 400, 401, 404 y 409. Actualiza astroSlug si la respuesta lo incluye."
+          },
+          "response": []
+        },
+        {
+          "name": "06 - Delete Astro (destructivo)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Código esperado\", function () { pm.expect([200, 400, 401, 404]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/astros/{{astroId}}",
+            "description": "Elimina físicamente el Astro indicado. Requiere Bearer token. Variables: baseUrl, token y astroId. Códigos principales: 200, 400, 401 y 404. Ejecute sólo sobre un Astro temporal y después de borrar sus datos dependientes."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03 - Conversations",
+      "description": "CRUD de conversaciones pertenecientes al usuario autenticado. Requiere un astroId activo.",
+      "item": [
+        {
+          "name": "01 - Create Conversation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Código esperado\", function () { pm.expect([201, 400, 401, 404]).to.include(pm.response.code); });",
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  const conversation = json.data && json.data.conversation;",
+                  "  const id = conversation && (conversation._id || conversation.id);",
+                  "  if (id) {",
+                  "    pm.collectionVariables.set(\"conversationId\", id);",
+                  "    if (pm.environment && pm.environment.name) pm.environment.set(\"conversationId\", id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"astro\": \"{{astroId}}\",\n  \"title\": \"Preguntas sobre Marte\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/conversations",
+            "description": "Crea una conversación activa para el Astro temporal. Requiere Bearer token. Variables: baseUrl, token y astroId. Códigos principales: 201, 400, 401 y 404. Si se crea, guarda conversationId."
+          },
+          "response": []
+        },
+        {
+          "name": "02 - List Conversations",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Código esperado\", function () { pm.expect([200, 400, 401]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/conversations?page=1&limit=10",
+            "description": "Lista conversaciones del usuario autenticado con paginación. Requiere Bearer token. Variables: baseUrl y token. Códigos principales: 200, 400 y 401."
+          },
+          "response": []
+        },
+        {
+          "name": "03 - Get Conversation by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Código esperado\", function () { pm.expect([200, 400, 401, 404]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/conversations/{{conversationId}}",
+            "description": "Consulta una conversación propia por ID. Requiere Bearer token. Variables: baseUrl, token y conversationId. Códigos principales: 200, 400, 401 y 404."
+          },
+          "response": []
+        },
+        {
+          "name": "04 - Update Conversation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Código esperado\", function () { pm.expect([200, 400, 401, 404]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Preguntas sobre Marte actualizadas\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/conversations/{{conversationId}}",
+            "description": "Actualiza el título de una conversación propia mediante PUT. Requiere Bearer token. Variables: baseUrl, token y conversationId. Códigos principales: 200, 400, 401 y 404."
+          },
+          "response": []
+        },
+        {
+          "name": "05 - Delete Conversation (destructivo)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Código esperado\", function () { pm.expect([200, 400, 401, 404]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/conversations/{{conversationId}}",
+            "description": "Elimina físicamente una conversación propia. Requiere Bearer token. Variables: baseUrl, token y conversationId. Códigos principales: 200, 400, 401 y 404. Ejecute al final sobre una conversación temporal; no hay cascade de Messages."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "04 - Messages",
+      "description": "Creación, listado, detalle y eliminación de mensajes pertenecientes a conversaciones del usuario.",
+      "item": [
+        {
+          "name": "01 - Create Message",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Código esperado\", function () { pm.expect([201, 400, 401, 404]).to.include(pm.response.code); });",
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  const message = json.data && json.data.message;",
+                  "  const id = message && (message._id || message.id);",
+                  "  if (id) {",
+                  "    pm.collectionVariables.set(\"messageId\", id);",
+                  "    if (pm.environment && pm.environment.name) pm.environment.set(\"messageId\", id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"user\",\n  \"content\": \"Hola Marte\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/messages/conversation/{{conversationId}}",
+            "description": "Crea un mensaje de usuario en una conversación activa propia. Requiere Bearer token. Variables: baseUrl, token y conversationId. Códigos principales: 201, 400, 401 y 404. Si se crea, guarda messageId."
+          },
+          "response": []
+        },
+        {
+          "name": "02 - List Messages by Conversation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Código esperado\", function () { pm.expect([200, 400, 401, 404]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/messages/conversation/{{conversationId}}?page=1&limit=20",
+            "description": "Lista mensajes de una conversación propia con paginación real. Requiere Bearer token. Variables: baseUrl, token y conversationId. Códigos principales: 200, 400, 401 y 404."
+          },
+          "response": []
+        },
+        {
+          "name": "03 - Get Message by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Código esperado\", function () { pm.expect([200, 400, 401, 404]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/messages/{{messageId}}",
+            "description": "Consulta un mensaje propio por ID. Requiere Bearer token. Variables: baseUrl, token y messageId. Códigos principales: 200, 400, 401 y 404."
+          },
+          "response": []
+        },
+        {
+          "name": "04 - Delete Message (destructivo)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Código esperado\", function () { pm.expect([200, 400, 401, 404]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/messages/{{messageId}}",
+            "description": "Elimina físicamente un mensaje propio. Requiere Bearer token. Variables: baseUrl, token y messageId. Códigos principales: 200, 400, 401 y 404. Ejecute sólo sobre un mensaje temporal."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "05 - Chat",
+      "description": "Endpoint de conversación con Gemini mediante el backend.",
+      "item": [
+        {
+          "name": "01 - Send Message to Gemini",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Código esperado\", function () { pm.expect([201, 400, 401, 404, 502, 503]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"¿Qué tipo de planeta sos?\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/chat/conversation/{{conversationId}}",
+            "description": "Guarda userMessage, consulta Gemini, guarda assistantMessage y devuelve ambos. Requiere Bearer token. Variables: baseUrl, token y conversationId. Códigos principales: 201, 400, 401, 404, 502 y 503. No utiliza ninguna API key en Postman."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
