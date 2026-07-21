@@ -169,6 +169,7 @@ Al verificarse correctamente, `isVerified` pasa a `true` y el token y su vencimi
 ## Convenciones de la API
 
 - URL base local: `http://localhost:3000/api`.
+- URL base pública: `https://astrochat-backend-2opw.onrender.com/api`.
 - Los cuerpos se envían como JSON.
 - 🔒 indica que el endpoint requiere un JWT válido.
 - Las listas incluyen `data.pagination` con `total`, `page`, `limit` y `totalPages`.
@@ -402,7 +403,7 @@ El proyecto no implementa actualmente una respuesta `429` propia ni middleware d
 
 ## Colección de Postman
 
-La colección y el environment local se encuentran en:
+La colección de Postman está incluida y versionada en este repositorio junto con un environment local:
 
 ```text
 docs/postman/AstroChat.postman_collection.json
@@ -410,6 +411,8 @@ docs/postman/AstroChat.local.postman_environment.json
 ```
 
 Ambos archivos utilizan variables reutilizables y datos ficticios. El environment no contiene credenciales ni tokens reales.
+
+La colección cubre los 21 endpoints disponibles de la API. Después de importarla en Postman, se puede utilizar el environment local o configurar `baseUrl` con `https://astrochat-backend-2opw.onrender.com/api` para probar el backend desplegado. Las rutas protegidas utilizan el token Bearer almacenado por el request de login.
 
 ## Deploy en Render
 
@@ -446,23 +449,15 @@ Configurables, con fallback o comportamiento definido por el código:
 - `GEMINI_MAX_OUTPUT_TOKENS`
 - `AI_HISTORY_LIMIT`
 
-`FRONTEND_URL` debe contener el origen público del frontend desplegado. CORS admite ese origen, `http://localhost:5173` para desarrollo y clientes sin encabezado `Origin`, como Postman o Thunder Client. No se habilitan credenciales CORS porque la autenticación utiliza Bearer tokens.
+`FRONTEND_URL` debe contener el origen público del frontend desplegado: `https://astrochat-mu.vercel.app`. CORS admite ese origen, `http://localhost:5173` para desarrollo y clientes sin encabezado `Origin`, como Postman o Thunder Client. No se habilitan credenciales CORS porque la autenticación utiliza Bearer tokens.
 
-El correo construye el enlace `{FRONTEND_URL}/verify-email?token={token}`. El backend expone el endpoint que consume el token, pero el frontend actual todavía no implementa la pantalla `/verify-email`; esa integración debe completarse para que el usuario pueda finalizar la verificación desde el enlace recibido.
+El correo construye el enlace `{FRONTEND_URL}/verify-email?token={token}`. El frontend implementa la pantalla pública `/verify-email`, lee el token del enlace y consume `GET /api/auth/verify-email/:token`, por lo que el flujo de verificación de correo funciona de extremo a extremo.
 
 No se necesita Dockerfile ni `render.yaml` para la configuración manual descrita.
 
-Backend desplegado: **PENDIENTE**
+Backend desplegado: `https://astrochat-backend-2opw.onrender.com`
 
-Frontend desplegado: **PENDIENTE**
-
-## Usuario de prueba
-
-Email: **PENDIENTE**
-
-Password: **PENDIENTE**
-
-La cuenta de prueba deberá estar verificada antes de iniciar sesión.
+Frontend desplegado: `https://astrochat-mu.vercel.app`
 
 ## Seguridad
 
@@ -478,6 +473,6 @@ La cuenta de prueba deberá estar verificada antes de iniciar sesión.
 
 ## Estado del proyecto
 
-Las funcionalidades principales del trabajo integrador están implementadas: autenticación con verificación de correo, CRUD de Astros, CRUD de Conversations, creación/listado/detalle/eliminación de Messages y chat persistente integrado con Gemini.
+La versión final del trabajo integrador está implementada y desplegada públicamente. Incluye autenticación con verificación de correo, CRUD de Astros, CRUD de Conversations, creación/listado/detalle/eliminación de Messages y chat persistente integrado con Gemini.
 
-El despliegue y las credenciales controladas de demostración permanecen pendientes de completar para la entrega.
+El backend está publicado en Render, el frontend está publicado en Vercel y la colección de Postman incluida en `docs/postman/` cubre los 21 endpoints disponibles de la API.
